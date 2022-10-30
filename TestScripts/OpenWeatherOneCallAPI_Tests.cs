@@ -28,16 +28,37 @@ namespace WeatherAPI_Test_Project.TestScripts
         [DataRow("London", "1")]
         public void Valid_Coordinates_Return_SuccessResponse_From_OpenWeatherOneCallAPI(string cityName, string limit)
         {
-            var geoCoding = GetCoordinatesFromGeocodingAPI(cityName, limit);
-
-            var response = client.GetAsync($"data/3.0/onecall?lat={geoCoding[0].lat}&lon={geoCoding[0].lat}&appid={APIKey}").Result;
+            var geoCodingResponse = GeocodingAPIResponse(cityName, limit);
+            var geocodingResponseData = DeserialiseGeocodingAPIResponse(geoCodingResponse);
+            var response = OpenWeatherOneCallAPIResponse(geocodingResponseData[0].lat.ToString(), geocodingResponseData[0].lon.ToString());
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, $"StatusCode is incorrect. Error Message {response.Content.ReadAsStringAsync().Result.ToString()}");
         }
 
-        public GeocodingAPI.Rootobject[] GetCoordinatesFromGeocodingAPI(string cityName = "London", string limit = "1")
+        [DataTestMethod]
+        [DataRow("London", "1")]
+        //[DataRow("Lndon", "1")]
+        public void Valid_CityName_Returns_SuccessResponse_From_GeocodingAPI(string cityName, string limit)
         {
-            var response = client.GetAsync($"geo/1.0/direct?q={cityName}&limit={limit}&appid={APIKey}").Result;
-            return JsonConvert.DeserializeObject<GeocodingAPI.Rootobject[]>(response.Content.ReadAsStringAsync().Result);
+            var geoCodingResponse = GeocodingAPIResponse(cityName, limit);
+            Assert.AreEqual(HttpStatusCode.OK, geoCodingResponse.StatusCode, $"StatusCode is incorrect. Error Message {geoCodingResponse.Content.ReadAsStringAsync().Result.ToString()}");
+            
+            var responseData = DeserialiseGeocodingAPIResponse(geoCodingResponse);
+            Assert.AreEqual(cityName, responseData[0].name, $"Response Data returned for wrong place.");
+        }
+
+        public GeocodingAPI.Rootobject[] DeserialiseGeocodingAPIResponse(HttpResponseMessage geocodingAPIResponse)
+        {
+            return JsonConvert.DeserializeObject<GeocodingAPI.Rootobject[]>(geocodingAPIResponse.Content.ReadAsStringAsync().Result);
+        }
+
+        public HttpResponseMessage OpenWeatherOneCallAPIResponse(string lat, string lon)
+        {
+            return client.GetAsync($"data/3.0/onecall?lat={lat}&lon={lon}&appid={APIKey}").Result;
+        }
+
+        public HttpResponseMessage GeocodingAPIResponse(string cityName = "London", string limit = "1")
+        {
+            return client.GetAsync($"geo/1.0/direct?q={cityName}&limit={limit}&appid={APIKey}").Result;
         }
 
     }
