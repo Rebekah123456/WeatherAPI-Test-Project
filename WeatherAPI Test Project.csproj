@@ -98,10 +98,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contracts\CurrentWeatherAPI.cs" />
     <Compile Include="Contracts\GeocodingAPI.cs" />
     <Compile Include="Contracts\OpenWeatherOneCallAPI.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestScripts\OpenWeatherOneCallAPI_Tests.cs" />
+    <Compile Include="TestScripts\OpenWeatherAPI_Tests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
