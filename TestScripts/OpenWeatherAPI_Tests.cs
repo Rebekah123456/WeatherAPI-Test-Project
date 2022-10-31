@@ -30,8 +30,7 @@ namespace WeatherAPI_Test_Project.TestScripts
         {
             var geoCodingResponse = GeocodingAPIResponse(cityName, limit);
             var geocodingResponseData = DeserialiseGeocodingAPIResponse(geoCodingResponse);
-            var response = OpenWeatherOneCallAPIResponse(geocodingResponseData[0].lat.ToString(), geocodingResponseData[0].lon.ToString());
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, $"StatusCode is incorrect. Error Message {response.Content.ReadAsStringAsync().Result.ToString()}");
+            OpenWeatherOneCallAPIResponse(geocodingResponseData[0].lat.ToString(), geocodingResponseData[0].lon.ToString(), HttpStatusCode.OK);
         }
 
         [DataTestMethod]
@@ -43,9 +42,8 @@ namespace WeatherAPI_Test_Project.TestScripts
             var geoCodingResponse = GeocodingAPIResponse(cityName, limit);
             var geocodingResponseData = DeserialiseGeocodingAPIResponse(geoCodingResponse);
 
-            //Call Current Weather API and assert success response
-            var response = CurrentWeatherAPIResponse(geocodingResponseData[0].lat.ToString(), geocodingResponseData[0].lon.ToString());
-            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode, $"StatusCode is incorrect. Error Message {response.Content.ReadAsStringAsync().Result.ToString()}");
+            //Call Current Weather API and get response
+            var response = CurrentWeatherAPIResponse(geocodingResponseData[0].lat.ToString(), geocodingResponseData[0].lon.ToString(), HttpStatusCode.OK);
             
             //Deserialise response and assert weather returned for requested location 
             var responseData = DeserialiseCurrentWeatherAPIResponse(response);
@@ -63,8 +61,7 @@ namespace WeatherAPI_Test_Project.TestScripts
         //[DataRow("Lndon", "1")]
         public void Valid_CityName_Returns_SuccessResponse_From_GeocodingAPI(string cityName, string limit)
         {
-            var geoCodingResponse = GeocodingAPIResponse(cityName, limit);
-            Assert.AreEqual(HttpStatusCode.OK, geoCodingResponse.StatusCode, $"StatusCode is incorrect. Error Message {geoCodingResponse.Content.ReadAsStringAsync().Result.ToString()}");
+            var geoCodingResponse = GeocodingAPIResponse(cityName, limit, HttpStatusCode.OK);
             
             var responseData = DeserialiseGeocodingAPIResponse(geoCodingResponse);
             Assert.AreEqual(cityName, responseData[0].name, $"Response Data returned for wrong place.");
@@ -72,7 +69,7 @@ namespace WeatherAPI_Test_Project.TestScripts
 
         #endregion
 
-        #region APICalls
+        #region APICallsAndSharedMethods
 
         public GeocodingAPI.Rootobject[] DeserialiseGeocodingAPIResponse(HttpResponseMessage geocodingAPIResponse)
         {
@@ -84,19 +81,30 @@ namespace WeatherAPI_Test_Project.TestScripts
             return JsonConvert.DeserializeObject<CurrentWeatherAPI.Rootobject>(currentWeatherAPIResponse.Content.ReadAsStringAsync().Result);
         }
 
-        public HttpResponseMessage OpenWeatherOneCallAPIResponse(string lat, string lon)
+        public HttpResponseMessage OpenWeatherOneCallAPIResponse(string lat, string lon, HttpStatusCode expectedStatusCode)
         {
-            return client.GetAsync($"data/3.0/onecall?lat={lat}&lon={lon}&appid={APIKey}").Result;
+            var response = client.GetAsync($"data/3.0/onecall?lat={lat}&lon={lon}&appid={APIKey}").Result;
+            ValidateStatusCode(response, expectedStatusCode);
+            return response;
         }
 
-        public HttpResponseMessage CurrentWeatherAPIResponse(string lat, string lon)
+        public HttpResponseMessage CurrentWeatherAPIResponse(string lat, string lon, HttpStatusCode expectedStatusCode)
         {
-            return client.GetAsync($"data/2.5/weather?lat={lat}&lon={lon}&appid={APIKey}&units=metric").Result;
+            var response =  client.GetAsync($"data/2.5/weather?lat={lat}&lon={lon}&appid={APIKey}&units=metric").Result;
+            ValidateStatusCode(response, expectedStatusCode);
+            return response;
         }
 
-        public HttpResponseMessage GeocodingAPIResponse(string cityName = "London", string limit = "1")
+        public HttpResponseMessage GeocodingAPIResponse(string cityName = "London", string limit = "1", HttpStatusCode expectedStatusCode = HttpStatusCode.OK)
         {
-            return client.GetAsync($"geo/1.0/direct?q={cityName}&limit={limit}&appid={APIKey}").Result;
+            var response = client.GetAsync($"geo/1.0/direct?q={cityName}&limit={limit}&appid={APIKey}").Result;
+            ValidateStatusCode(response, expectedStatusCode);
+            return response;
+        }
+
+        public void ValidateStatusCode(HttpResponseMessage apiResponse, HttpStatusCode expectedStatusCode)
+        {
+            Assert.AreEqual(expectedStatusCode, apiResponse.StatusCode, $"StatusCode is incorrect. Error Message {apiResponse.Content.ReadAsStringAsync().Result.ToString()}");
         }
 
         #endregion
